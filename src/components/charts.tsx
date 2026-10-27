@@ -9,7 +9,7 @@ export function RevenueChart({ data }: { data: { month?: string; date?: string; 
           <XAxis dataKey={data[0] && "month" in data[0] ? "month" : "date"} fontSize={11} />
           <YAxis fontSize={11} />
           <Tooltip />
-          <Line type="monotone" dataKey="total" stroke="#0f172a" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="total" stroke="#2d523e" strokeWidth={2.5} dot={{ fill: "#c39a35", strokeWidth: 0, r: 3 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -24,7 +24,7 @@ export function CountChart({ data }: { data: { type: string; count: number }[] }
           <XAxis dataKey="type" fontSize={11} />
           <YAxis fontSize={11} allowDecimals={false} />
           <Tooltip />
-          <Bar dataKey="count" fill="#0f172a" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="count" fill="#c39a35" radius={[8, 8, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

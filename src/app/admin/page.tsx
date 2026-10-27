@@ -1,32 +1,56 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Card } from "@/components/ui";
+import { api, messageOf } from "@/lib/api-client";
+import { toast } from "@/components/toast";
+import { Card, PageHeader, Stat } from "@/components/ui";
 import { RevenueChart, CountChart } from "@/components/charts";
 import { inr } from "@/lib/utils";
+import { ArrowRight, BedDouble, ClipboardList, ConciergeBell, LineChart, Settings2, Sparkles, Users, Wallet } from "lucide-react";
+
+type Dash = { totalRooms?: number; availableRooms?: number; occupiedRooms?: number; maintenanceRooms?: number; totalReservations?: number; todayCheckIns?: number; todayCheckOuts?: number; monthlyRevenue?: number; occupancyRate?: number; revenueByMonth?: { month: string; total: number }[]; bookingsByType?: { type: string; count: number }[]; cancellations?: number };
+
+const nav = [
+  ["Rooms", "/admin/rooms", BedDouble], ["Room types", "/admin/room-types", ClipboardList],
+  ["Reservations", "/admin/reservations", ConciergeBell], ["Staff", "/admin/staff", Users],
+  ["Housekeeping", "/admin/housekeeping", Sparkles], ["Payments", "/admin/payments", Wallet],
+  ["Reports", "/admin/reports", LineChart], ["Settings", "/admin/settings", Settings2],
+] as const;
 
 export default function AdminHome() {
-  const [d, setD] = useState<{ totalRooms?: number; availableRooms?: number; occupiedRooms?: number; maintenanceRooms?: number; totalReservations?: number; todayCheckIns?: number; todayCheckOuts?: number; monthlyRevenue?: number; occupancyRate?: number; revenueByMonth?: { month: string; total: number }[]; bookingsByType?: { type: string; count: number }[]; cancellations?: number } | null>(null);
-  useEffect(() => { fetch("/api/admin/dashboard").then((r) => r.json()).then(setD).catch(() => {}); }, []);
-  const stats: [string, string][] = [
-    ["Total rooms", String(d?.totalRooms ?? "—")], ["Available", String(d?.availableRooms ?? "—")],
-    ["Occupied", String(d?.occupiedRooms ?? "—")], ["Maintenance", String(d?.maintenanceRooms ?? "—")],
-    ["Reservations", String(d?.totalReservations ?? "—")], ["Check-ins today", String(d?.todayCheckIns ?? "—")],
-    ["Check-outs today", String(d?.todayCheckOuts ?? "—")], ["Revenue", inr(Number(d?.monthlyRevenue ?? 0))],
-    ["Occupancy", `${d?.occupancyRate ?? 0}%`], ["Cancellations", String(d?.cancellations ?? "—")],
-  ];
+  const [d, setD] = useState<Dash | null>(null);
+  useEffect(() => {
+    api<Dash>("/api/admin/dashboard").then(setD).catch((e) => toast.error(messageOf(e)));
+  }, []);
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Admin dashboard</h1>
-      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        {stats.map(([k, v]) => <Card key={k}><p className="text-xs uppercase text-slate-500">{k}</p><p className="text-xl font-bold">{v}</p></Card>)}
+    <div className="space-y-6">
+      <PageHeader eyebrow="Control room" title="Hotel overview" description="Occupancy, revenue and operations at a glance." />
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-5">
+        <Stat label="Total rooms" value={String(d?.totalRooms ?? "—")} />
+        <Stat label="Available" value={String(d?.availableRooms ?? "—")} />
+        <Stat label="Occupied" value={String(d?.occupiedRooms ?? "—")} accent />
+        <Stat label="Maintenance" value={String(d?.maintenanceRooms ?? "—")} />
+        <Stat label="Occupancy" value={`${d?.occupancyRate ?? 0}%`} />
+        <Stat label="Reservations" value={String(d?.totalReservations ?? "—")} />
+        <Stat label="Check-ins today" value={String(d?.todayCheckIns ?? "—")} />
+        <Stat label="Check-outs today" value={String(d?.todayCheckOuts ?? "—")} />
+        <Stat label="Revenue" value={inr(Number(d?.monthlyRevenue ?? 0))} accent />
+        <Stat label="Cancellations" value={String(d?.cancellations ?? "—")} />
       </div>
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card><h2 className="mb-2 font-semibold">Revenue over time</h2><RevenueChart data={d?.revenueByMonth ?? []} /></Card>
-        <Card><h2 className="mb-2 font-semibold">Bookings by room type</h2><CountChart data={d?.bookingsByType ?? []} /></Card>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Card><h2 className="font-display text-xl font-semibold text-forest-950">Revenue over time</h2><div className="mt-3"><RevenueChart data={d?.revenueByMonth ?? []} /></div></Card>
+        <Card><h2 className="font-display text-xl font-semibold text-forest-950">Bookings by room type</h2><div className="mt-3"><CountChart data={d?.bookingsByType ?? []} /></div></Card>
       </div>
-      <div className="flex flex-wrap gap-3 text-sm">
-        {["rooms", "room-types", "reservations", "staff", "housekeeping", "payments", "reports", "logs", "settings"].map((p) => <Link key={p} href={`/admin/${p}`} className="underline">{p}</Link>)}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {nav.map(([label, href, Icon]) => (
+          <Link key={href} href={href}>
+            <Card className="group flex items-center gap-3 transition hover:-translate-y-0.5 hover:shadow-lift">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-forest-900 text-brass-300"><Icon className="h-5 w-5" /></span>
+              <span className="flex-1 text-sm font-semibold text-forest-950">{label}</span>
+              <ArrowRight className="h-4 w-4 text-brass-500 transition group-hover:translate-x-1" />
+            </Card>
+          </Link>
+        ))}
       </div>
     </div>
   );

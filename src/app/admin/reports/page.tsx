@@ -1,42 +1,61 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Card, Button, Input } from "@/components/ui";
+import { api, messageOf } from "@/lib/api-client";
+import { toast } from "@/components/toast";
+import { Card, Button, Input, Badge, PageHeader, Stat, statusTone } from "@/components/ui";
 import { RevenueChart } from "@/components/charts";
 import { inr } from "@/lib/utils";
+import { CalendarRange, Play } from "lucide-react";
+
+type Report = { totalRevenue?: number; totalBookings?: number; revenueByDay?: { date: string; total: number }[]; bookings?: Record<string, string | number>[] };
 
 export default function ReportsPage() {
   const [from, setFrom] = useState("2026-01-01");
   const [to, setTo] = useState("2026-12-31");
-  const [d, setD] = useState<{ totalRevenue?: number; totalBookings?: number; revenueByDay?: { date: string; total: number }[]; bookings?: Record<string, string | number>[] } | null>(null);
+  const [d, setD] = useState<Report | null>(null);
+  const [busy, setBusy] = useState(false);
   async function load() {
-    const j = await (await fetch(`/api/admin/reports?from=${from}&to=${to}`)).json();
-    setD(j);
+    setBusy(true);
+    try {
+      setD(await api<Report>(`/api/admin/reports?from=${from}&to=${to}`));
+    } catch (e) {
+      toast.error(messageOf(e));
+    } finally {
+      setBusy(false);
+    }
   }
   useEffect(() => { load(); }, []);
   return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Reports & analytics</h1>
+    <div className="space-y-5">
+      <PageHeader eyebrow="Analytics" title="Reports & analytics" description="Revenue and occupancy for any date range." actions={<Button variant="gold" size="sm" disabled={busy} onClick={load}><Play className="h-3.5 w-3.5" /> {busy ? "Running…" : "Run report"}</Button>} />
       <Card>
-        <div className="flex gap-2">
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-          <Button onClick={load}>Run</Button>
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-forest-700/80">From<Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+          <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-forest-700/80">To<Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
         </div>
       </Card>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card><p className="text-xs uppercase text-slate-500">Revenue in range</p><p className="text-2xl font-bold">{inr(Number(d?.totalRevenue ?? 0))}</p></Card>
-        <Card><p className="text-xs uppercase text-slate-500">Bookings in range</p><p className="text-2xl font-bold">{d?.totalBookings ?? 0}</p></Card>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Stat label="Revenue in range" value={inr(Number(d?.totalRevenue ?? 0))} accent />
+        <Stat label="Bookings in range" value={String(d?.totalBookings ?? 0)} sub="Check-ins within the window" />
       </div>
-      <Card><h2 className="mb-2 font-semibold">Revenue by day</h2><RevenueChart data={d?.revenueByDay ?? []} /></Card>
+      <Card><h2 className="flex items-center gap-2 font-display text-xl font-semibold text-forest-950"><CalendarRange className="h-5 w-5 text-brass-500" /> Revenue by day</h2><div className="mt-3"><RevenueChart data={d?.revenueByDay ?? []} /></div></Card>
       <Card>
-        <h2 className="mb-2 font-semibold">Occupancy calendar</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs">
-            <thead><tr><th className="text-left">Room</th><th className="text-left">Guest</th><th className="text-left">Dates</th><th className="text-left">Status</th></tr></thead>
+        <h2 className="font-display text-xl font-semibold text-forest-950">Occupancy ledger</h2>
+        <div className="mt-3 overflow-x-auto rounded-xl border border-forest-900/10">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead><tr className="bg-forest-950 text-left text-[11px] uppercase tracking-[0.14em] text-brass-300"><th className="px-4 py-3">Room</th><th className="px-4 py-3">Guest</th><th className="px-4 py-3">Dates</th><th className="px-4 py-3">Status</th></tr></thead>
             <tbody>
-              {(d?.bookings ?? []).slice(0, 60).map((b) => <tr key={String(b.id)} className="border-t"><td className="py-1">{String(b.roomNumber)}</td><td>{String(b.guestName)}</td><td>{String(b.checkIn)} → {String(b.checkOut)}</td><td>{String(b.status)}</td></tr>)}
+              {(d?.bookings ?? []).slice(0, 60).map((b) => (
+                <tr key={String(b.id)} className="border-t border-forest-900/10 transition hover:bg-ivory-100">
+                  <td className="px-4 py-2.5 font-semibold">{String(b.roomNumber)}</td>
+                  <td className="px-4 py-2.5">{String(b.guestName)}</td>
+                  <td className="px-4 py-2.5 text-ink-500">{String(b.checkIn)} → {String(b.checkOut)}</td>
+                  <td className="px-4 py-2.5"><Badge tone={statusTone(String(b.status))}>{String(b.status).replace(/_/g, " ")}</Badge></td>
+                </tr>
+              ))}
             </tbody>
           </table>
+          {(d?.bookings ?? []).length === 0 && <p className="px-4 py-6 text-center text-sm text-ink-500">No bookings in this range.</p>}
         </div>
       </Card>
     </div>
