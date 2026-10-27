@@ -31,10 +31,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 
 Set `MONGODB_TRANSACTIONS=off` for standalone MongoDB servers, remove it on replica sets or Atlas to use multi-document transactions.
 
-Open `http://localhost:3000`, register an account, then promote it to admin directly in MongoDB:
+Open `http://localhost:3000`, register an account, then promote it to admin:
 
-```js
-db.user.updateOne({ email: "you@example.com" }, { $set: { role: "admin" } })
+```bash
+npm run make-admin -- you@example.com
 ```
 
 Admins create staff accounts from `/admin/staff`.
