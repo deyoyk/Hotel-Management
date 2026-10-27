@@ -1,4 +1,4 @@
-# Grand Horizon — Hotel Reservation & Management System
+# Grand Horizon - Hotel Reservation & Management System
 
 Single-hotel management platform built with Next.js (App Router), TypeScript, MongoDB (native driver), Better Auth, Tailwind CSS, Recharts, Zod and date-fns. One app serves the public site, customer dashboard, staff dashboard and admin dashboard, plus all backend APIs.
 
